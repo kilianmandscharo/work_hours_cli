@@ -1,12 +1,10 @@
 use core::fmt;
 use serde::{Deserialize, Serialize};
-use std::sync::{Arc, Mutex};
 use std::{string::FromUtf8Error, time::Duration};
 
 const TOKEN_DURATION: Duration = Duration::from_secs(10 * 60);
 const FILE_NAME: &str = "token.json";
 const LOGIN_URL: &str = "http://localhost:8080/login";
-const REFRESH_URL: &str = "http://localhost:8080/refresh";
 
 #[derive(Debug)]
 pub enum AuthError {
@@ -66,7 +64,7 @@ struct Login {
 }
 
 pub struct Authorizer {
-    token: Arc<Mutex<Option<Token>>>,
+    token: Option<Token>,
 }
 
 impl Authorizer {
@@ -75,8 +73,14 @@ impl Authorizer {
             Ok(token) => Some(token),
             _ => None,
         };
-        Authorizer {
-            token: Arc::new(Mutex::new(token)),
+        Authorizer { token }
+    }
+
+    pub fn token(&self) -> Option<&Token> {
+        if let Some(ref token) = self.token {
+            return Some(token);
+        } else {
+            return None;
         }
     }
 
@@ -100,38 +104,38 @@ impl Authorizer {
         let token = Token::new(String::from(token));
 
         save_token_to_file(&token)?;
-        *self.token.lock().unwrap() = Some(token);
+        self.token = Some(token);
 
         Ok(())
     }
 
-    fn refresh_token(&mut self, token: &Token) -> Result<(), AuthError> {
-        if !self.login_necessary() {
-            return Ok(());
-        }
+    // fn refresh_token(&mut self, token: &Token) -> Result<(), AuthError> {
+    //     if !self.login_necessary() {
+    //         return Ok(());
+    //     }
+    //
+    //     let client = reqwest::blocking::Client::new();
+    //     let res = client
+    //         .post(REFRESH_URL)
+    //         .header("Authorization", format!("Bearer {}", token.jwt))
+    //         .send()?;
+    //
+    //     let status = res.status();
+    //     if !res.status().is_success() {
+    //         return Err(AuthError::AuthError(status.as_u16()));
+    //     }
+    //
+    //     let token = res.text()?;
+    //     let token = Token::new(String::from(token));
+    //
+    //     save_token_to_file(&token)?;
+    //     *self.token.lock().unwrap() = Some(token);
+    //
+    //     Ok(())
+    // }
 
-        let client = reqwest::blocking::Client::new();
-        let res = client
-            .post(REFRESH_URL)
-            .header("Authorization", format!("Bearer {}", token.jwt))
-            .send()?;
-
-        let status = res.status();
-        if !res.status().is_success() {
-            return Err(AuthError::AuthError(status.as_u16()));
-        }
-
-        let token = res.text()?;
-        let token = Token::new(String::from(token));
-
-        save_token_to_file(&token)?;
-        *self.token.lock().unwrap() = Some(token);
-
-        Ok(())
-    }
-
-    fn login_necessary(&self) -> bool {
-        if let Some(ref token) = *self.token.lock().unwrap() {
+    pub fn login_necessary(&self) -> bool {
+        if let Some(ref token) = self.token {
             if token.has_expired() {
                 return true;
             } else {
@@ -141,26 +145,6 @@ impl Authorizer {
             true
         }
     }
-
-    // pub fn start_refresh_interval(&mut self) {
-    //     let token = Arc::clone(&self.token);
-    //
-    //     std::thread::spawn(move || loop {
-    //         println!("Checking token for refresh");
-    //
-    //         let now = std::time::SystemTime::now();
-    //
-    //         if let Some(token) = token.lock().unwrap().clone() {
-    //             if let Ok(expiry_time) = token.expires_at.duration_since(now) {
-    //                 if expiry_time < Duration::from_secs(30) {
-    //                     self.refresh_token(&token);
-    //                 }
-    //             }
-    //         }
-    //
-    //         std::thread::sleep(Duration::from_secs(2));
-    //     });
-    // }
 }
 
 impl Token {
@@ -177,16 +161,11 @@ impl Token {
             true
         }
     }
-}
 
-// impl Clone for Token {
-//     fn clone(&self) -> Self {
-//         Token {
-//             jwt: self.jwt.clone(),
-//             expires_at: self.expires_at.clone(),
-//         }
-//     }
-// }
+    pub fn token_string(&self) -> &str {
+        &self.jwt
+    }
+}
 
 fn save_token_to_file(token: &Token) -> Result<(), std::io::Error> {
     let token = serde_json::to_string(&token)?;
