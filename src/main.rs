@@ -31,7 +31,7 @@ fn main() {
                 "end block" => {
                     action_handler
                         .end_block(token)
-                        .handle_response("> Block beendet", "> Kein Block aktiv");
+                        .handle_response("> Block beendet", "> Kein Block aktiv/Pause noch aktiv");
                 }
                 "start pause" => {
                     action_handler

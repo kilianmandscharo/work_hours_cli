@@ -80,7 +80,7 @@ impl ActionHandler {
         Ok(((), res.status()))
     }
 
-    pub fn get_current_block(&self, token: &Token) -> ActionHandlerResponse<Block> {
+    pub fn get_current_block(&self, token: &Token) -> ActionHandlerResponse<Option<Block>> {
         let client = Client::new();
         let url = format!("{SERVER_URL}/block_current");
         let res = client
@@ -89,12 +89,15 @@ impl ActionHandler {
             .send()?;
 
         let status = res.status();
-        let block: Block = res.json()?;
+        let block: Result<Block, reqwest::Error> = res.json();
 
-        Ok((block, status))
+        match block {
+            Ok(block) => Ok((Some(block), status)),
+            Err(_) => Ok((None, status)),
+        }
     }
 
-    pub fn get_all_blocks(&self, token: &Token) -> ActionHandlerResponse<Vec<Block>> {
+    pub fn get_all_blocks(&self, token: &Token) -> ActionHandlerResponse<Option<Vec<Block>>> {
         let client = Client::new();
         let url = format!("{SERVER_URL}/block");
         let res = client
@@ -103,8 +106,11 @@ impl ActionHandler {
             .send()?;
 
         let status = res.status();
-        let blocks: Vec<Block> = res.json()?;
+        let blocks: Result<Vec<Block>, reqwest::Error> = res.json();
 
-        Ok((blocks, status))
+        match blocks {
+            Ok(blocks) => Ok((Some(blocks), status)),
+            Err(_) => Ok((None, status)),
+        }
     }
 }
