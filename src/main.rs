@@ -1,88 +1,60 @@
-use std::io::stdin;
+use fetch::ResponseHandler;
+use prompt::{prompt_command, prompt_login};
 
 mod auth;
 mod block;
+mod error;
 mod fetch;
+mod prompt;
 
 fn main() {
     let mut authorizer = auth::Authorizer::new();
-    let handler = fetch::Handler::new();
+    let action_handler = fetch::ActionHandler::new();
 
     loop {
         if authorizer.login_necessary() {
-            println!("Gib deine Email-Adresse ein:");
-            let mut email = String::new();
-            stdin()
-                .read_line(&mut email)
-                .expect("Fehler beim Lesen des Inputs");
-
-            println!("Gib dein Passwort ein:");
-            let mut password = String::new();
-            stdin()
-                .read_line(&mut password)
-                .expect("Fehler beim Lesen des Inputs");
-
-            let email = email.trim().to_string();
-            let password = password.trim().to_string();
-
-            if let Ok(_) = authorizer.login(email, password) {
-                println!("Anmeldung erfolgreich");
-            } else {
-                println!("Anmeldung fehlgeschlagen");
+            let (email, password) = prompt_login();
+            match authorizer.login(email, password) {
+                Ok(_) => println!("> Anmeldung erfolgreich"),
+                Err(_) => println!("> Anmeldung fehlgeschlagen"),
             }
         } else {
-            println!("Gib ein Kommando ein:");
-
-            let mut command = String::new();
-            stdin()
-                .read_line(&mut command)
-                .expect("Fehler beim Lesen des Inputs");
+            let token = authorizer.token().expect("> Kein Token gefunden");
+            let command = prompt_command();
 
             match command.trim() {
                 "start block" => {
-                    let token = authorizer.token().unwrap();
-                    match handler.start_block(token) {
-                        Ok(status) => println!("{}", status),
-                        Err(_) => println!("Fehler"),
-                    }
-                }
-                "start pause" => {
-                    let token = authorizer.token().unwrap();
-                    match handler.start_pause(token) {
-                        Ok(status) => println!("{}", status),
-                        Err(_) => println!("Fehler"),
-                    }
+                    action_handler
+                        .start_block(token)
+                        .handle_response("> Block getartet", "> Block bereits aktiv");
                 }
                 "end block" => {
-                    let token = authorizer.token().unwrap();
-                    match handler.end_block(token) {
-                        Ok(status) => println!("{}", status),
-                        Err(_) => println!("Fehler"),
-                    }
+                    action_handler
+                        .end_block(token)
+                        .handle_response("> Block beendet", "> Kein Block aktiv");
+                }
+                "start pause" => {
+                    action_handler
+                        .start_pause(token)
+                        .handle_response("> Pause gestartet", "> Pause bereits aktiv");
                 }
                 "end pause" => {
-                    let token = authorizer.token().unwrap();
-                    match handler.end_pause(token) {
-                        Ok(status) => println!("{}", status),
-                        Err(_) => println!("Fehler"),
-                    }
+                    action_handler
+                        .end_pause(token)
+                        .handle_response("> Pause beendet", "> Keine Pause aktiv");
                 }
                 "current" => {
-                    let token = authorizer.token().unwrap();
-                    match handler.get_current_block(token) {
-                        Ok(block) => println!("{:?}", block),
-                        Err(err) => println!("{}", err),
-                    }
+                    action_handler
+                        .get_current_block(token)
+                        .handle_response("> Aktueller Block", "> Kein Block aktiv");
                 }
                 "all" => {
-                    let token = authorizer.token().unwrap();
-                    match handler.get_all_blocks(token) {
-                        Ok(blocks) => println!("{:?}", blocks),
-                        Err(err) => println!("{}", err),
-                    }
+                    action_handler
+                        .get_all_blocks(token)
+                        .handle_response("> Alle Blocks", "> Keine Blocks");
                 }
                 _ => {
-                    println!("Unbekanntes Kommando")
+                    println!("> Unbekanntes Kommando");
                 }
             }
         }
