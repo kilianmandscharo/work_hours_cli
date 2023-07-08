@@ -1,5 +1,5 @@
 use fetch::ResponseHandler;
-use prompt::{prompt_command, prompt_login};
+use prompt::{error_text, prompt_command, prompt_login, success_text};
 
 mod auth;
 mod block;
@@ -15,8 +15,8 @@ fn main() {
         if authorizer.login_necessary() {
             let (email, password) = prompt_login();
             match authorizer.login(email, password) {
-                Ok(_) => println!("> Anmeldung erfolgreich"),
-                Err(_) => println!("> Anmeldung fehlgeschlagen"),
+                Ok(_) => println!("{}", success_text("> Anmeldung erfolgreich")),
+                Err(_) => println!("{}", error_text("> Anmeldung fehlgeschlagen")),
             }
         } else {
             let token = authorizer.token().expect("> Kein Token gefunden");
@@ -53,8 +53,12 @@ fn main() {
                         .get_all_blocks(token)
                         .handle_response("> Alle Blocks", "> Keine Blocks");
                 }
+                "exit" => {
+                    println!("{}", success_text("> Programm beendet"));
+                    break;
+                }
                 _ => {
-                    println!("> Unbekanntes Kommando");
+                    println!("{}", error_text("> Unbekanntes Kommando"));
                 }
             }
         }

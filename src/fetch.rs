@@ -1,4 +1,5 @@
 use crate::{auth::Token, block::Block};
+use colored::Colorize;
 use reqwest::{blocking::Client, StatusCode};
 
 const SERVER_URL: &str = "http://localhost:8080";
@@ -14,10 +15,10 @@ impl<T> ResponseHandler<T> for ActionHandlerResponse<T> {
         match &self {
             Ok(res) => {
                 if res.1.is_success() {
-                    println!("{}", success_msg);
+                    println!("{}", success_msg.green());
                     return Some(&res.0);
                 } else {
-                    println!("{}", fail_msg);
+                    println!("{}", fail_msg.red());
                     return None;
                 }
             }

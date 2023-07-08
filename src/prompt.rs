@@ -1,3 +1,4 @@
+use colored::{ColoredString, Colorize};
 use std::io::stdin;
 
 pub fn prompt_login() -> (String, String) {
@@ -24,4 +25,12 @@ pub fn prompt_command() -> String {
         .expect("Fehler beim Lesen des Inputs");
 
     command
+}
+
+pub fn error_text(s: &str) -> ColoredString {
+    ColoredString::from(s).red()
+}
+
+pub fn success_text(s: &str) -> ColoredString {
+    ColoredString::from(s).green()
 }
