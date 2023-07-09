@@ -1,6 +1,32 @@
 use core::fmt;
 use std::string::FromUtf8Error;
 
+pub enum FetchError {
+    JSONError(serde_json::Error),
+    HTTPError(reqwest::Error),
+}
+
+impl std::fmt::Display for FetchError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            FetchError::JSONError(err) => write!(f, "JSON error: {}", err),
+            FetchError::HTTPError(err) => write!(f, "HTTP error: {}", err),
+        }
+    }
+}
+
+impl From<serde_json::Error> for FetchError {
+    fn from(error: serde_json::Error) -> Self {
+        FetchError::JSONError(error)
+    }
+}
+
+impl From<reqwest::Error> for FetchError {
+    fn from(error: reqwest::Error) -> Self {
+        FetchError::HTTPError(error)
+    }
+}
+
 #[derive(Debug)]
 pub enum AuthError {
     JSONError(serde_json::Error),

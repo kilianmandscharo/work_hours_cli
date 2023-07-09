@@ -6,6 +6,7 @@ mod block;
 mod error;
 mod fetch;
 mod prompt;
+mod time;
 
 fn main() {
     let mut authorizer = auth::Authorizer::new();
@@ -44,14 +45,24 @@ fn main() {
                         .handle_response("> Pause beendet", "> Keine Pause aktiv");
                 }
                 "current" => {
-                    action_handler
+                    let block = action_handler
                         .get_current_block(token)
                         .handle_response("> Aktueller Block", "> Kein Block aktiv");
+
+                    if let Some(block) = block {
+                        block.display();
+                    }
                 }
                 "all" => {
-                    action_handler
+                    let blocks = action_handler
                         .get_all_blocks(token)
                         .handle_response("> Alle Blocks", "> Keine Blocks");
+
+                    if let Some(blocks) = blocks {
+                        for block in blocks {
+                            block.display();
+                        }
+                    }
                 }
                 "exit" => {
                     println!("{}", success_text("> Programm beendet"));
