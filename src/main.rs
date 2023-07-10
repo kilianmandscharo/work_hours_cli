@@ -29,6 +29,11 @@ fn main() {
                         .start_block(token)
                         .handle_response("> Block getartet", "> Block bereits aktiv");
                 }
+                "start block homeoffice" => {
+                    action_handler
+                        .start_block_homeoffice(token)
+                        .handle_response("> Block getartet", "> Block bereits aktiv");
+                }
                 "end block" => {
                     action_handler
                         .end_block(token)

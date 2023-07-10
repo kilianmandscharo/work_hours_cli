@@ -8,6 +8,7 @@ pub struct Block {
     start: String,
     end: String,
     pauses: Option<Vec<Pause>>,
+    homeoffice: bool,
 }
 
 impl Block {
@@ -19,6 +20,7 @@ impl Block {
             let d = Duration::from_chrono_duration(now.signed_duration_since(start));
 
             println!("Block {} - AKTIV", self.id);
+            println!("Homeoffice: {}", self.homeoffice);
             println!("Aktiv seit: {}", start.format("%d.%m.%Y %H:%M:%S"));
             println!("Zeit: {:0>2}:{:0>2}:{:0>2}", d.hours, d.minutes, d.seconds);
         } else {
@@ -28,6 +30,7 @@ impl Block {
             let d = Duration::from_chrono_duration(end.signed_duration_since(start));
 
             println!("Block {} - ABGESCHLOSSEN", self.id);
+            println!("Homeoffice: {}", self.homeoffice);
             println!("Start: {}", start.format("%d.%m.%Y %H:%M:%S"));
             println!("End: {}", end.format("%d.%m.%Y %H:%M:%S"));
             println!("Zeit: {:0>2}:{:0>2}:{:0>2}", d.hours, d.minutes, d.seconds);

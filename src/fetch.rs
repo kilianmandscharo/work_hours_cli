@@ -48,7 +48,18 @@ impl ActionHandler {
 
     pub fn start_block(&self, token: &Token) -> ActionHandlerResponse<()> {
         let client = Client::new();
-        let url = format!("{SERVER_URL}/block_start");
+        let url = format!("{SERVER_URL}/block_start?homeoffice=false");
+        let res = client
+            .post(url)
+            .header("Authorization", format!("Bearer {}", token.token_string()))
+            .send()?;
+
+        Ok(((), res.status()))
+    }
+
+    pub fn start_block_homeoffice(&self, token: &Token) -> ActionHandlerResponse<()> {
+        let client = Client::new();
+        let url = format!("{SERVER_URL}/block_start?homeoffice=true");
         let res = client
             .post(url)
             .header("Authorization", format!("Bearer {}", token.token_string()))
