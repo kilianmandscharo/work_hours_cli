@@ -1,10 +1,12 @@
 use fetch::ResponseHandler;
+use parse::{parse_command, Command};
 use prompt::{error_text, prompt_command, prompt_login, success_text};
 
 mod auth;
 mod block;
 mod error;
 mod fetch;
+mod parse;
 mod prompt;
 mod time;
 
@@ -23,33 +25,33 @@ fn main() {
             let token = authorizer.token().expect("> Kein Token gefunden");
             let command = prompt_command();
 
-            match command.trim() {
-                "start block" => {
+            match parse_command(command.trim()) {
+                Command::StartBlock => {
                     action_handler
                         .start_block(token)
-                        .handle_response("> Block getartet", "> Block bereits aktiv");
+                        .handle_response("> Block gestartet", "> Block bereits aktiv");
                 }
-                "start block homeoffice" => {
+                Command::StartBlockHomeoffice => {
                     action_handler
                         .start_block_homeoffice(token)
-                        .handle_response("> Block getartet", "> Block bereits aktiv");
+                        .handle_response("> Block gestartet", "> Block bereits aktiv");
                 }
-                "end block" => {
+                Command::EndBlock => {
                     action_handler
                         .end_block(token)
                         .handle_response("> Block beendet", "> Kein Block aktiv/Pause noch aktiv");
                 }
-                "start pause" => {
+                Command::StartPause => {
                     action_handler
                         .start_pause(token)
                         .handle_response("> Pause gestartet", "> Pause bereits aktiv");
                 }
-                "end pause" => {
+                Command::EndPause => {
                     action_handler
                         .end_pause(token)
                         .handle_response("> Pause beendet", "> Keine Pause aktiv");
                 }
-                "current" => {
+                Command::Current => {
                     let block = action_handler
                         .get_current_block(token)
                         .handle_response("> Aktueller Block", "> Kein Block aktiv");
@@ -58,10 +60,10 @@ fn main() {
                         block.display();
                     }
                 }
-                "all" => {
+                Command::All => {
                     let blocks = action_handler
                         .get_all_blocks(token)
-                        .handle_response("> Alle Blocks", "> Keine Blocks");
+                        .handle_response("> Alle Blöcke", "> Keine Blöcke");
 
                     if let Some(blocks) = blocks {
                         for block in blocks {
@@ -69,12 +71,17 @@ fn main() {
                         }
                     }
                 }
-                "exit" => {
+                Command::Delete(id) => {
+                    action_handler
+                        .delete_block(id, token)
+                        .handle_response("Block gelöchst", "Block nicht gefunden");
+                }
+                Command::Exit => {
                     println!("{}", success_text("> Programm beendet"));
                     break;
                 }
-                _ => {
-                    println!("{}", error_text("> Unbekanntes Kommando"));
+                Command::Unknown => {
+                    println!("{}", error_text("Unbekanntes Kommando"))
                 }
             }
         }
