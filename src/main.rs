@@ -26,32 +26,27 @@ fn main() {
             let command = prompt_command();
 
             match parse_command(command.trim()) {
-                Command::StartBlock => {
+                Command::BlockStart(homeoffice) => {
                     action_handler
-                        .start_block(token)
+                        .start_block(token, homeoffice)
                         .handle_response("> Block gestartet", "> Block bereits aktiv");
                 }
-                Command::StartBlockHomeoffice => {
-                    action_handler
-                        .start_block_homeoffice(token)
-                        .handle_response("> Block gestartet", "> Block bereits aktiv");
-                }
-                Command::EndBlock => {
+                Command::BlockEnd => {
                     action_handler
                         .end_block(token)
                         .handle_response("> Block beendet", "> Kein Block aktiv/Pause noch aktiv");
                 }
-                Command::StartPause => {
+                Command::PauseStart => {
                     action_handler
                         .start_pause(token)
                         .handle_response("> Pause gestartet", "> Pause bereits aktiv");
                 }
-                Command::EndPause => {
+                Command::PauseEnd => {
                     action_handler
                         .end_pause(token)
                         .handle_response("> Pause beendet", "> Keine Pause aktiv");
                 }
-                Command::Current => {
+                Command::BlockCurrent => {
                     let block = action_handler
                         .get_current_block(token)
                         .handle_response("> Aktueller Block", "> Kein Block aktiv");
@@ -60,7 +55,7 @@ fn main() {
                         block.display();
                     }
                 }
-                Command::All => {
+                Command::BlockAll => {
                     let blocks = action_handler
                         .get_all_blocks(token)
                         .handle_response("> Alle Blöcke", "> Keine Blöcke");
@@ -71,10 +66,15 @@ fn main() {
                         }
                     }
                 }
-                Command::Delete(id) => {
+                Command::BlockDelete(id) => {
                     action_handler
                         .delete_block(id, token)
-                        .handle_response("Block gelöchst", "Block nicht gefunden");
+                        .handle_response("Block gelöscht", "Block nicht gefunden");
+                }
+                Command::PauseDelete(id) => {
+                    action_handler
+                        .delete_pause(id, token)
+                        .handle_response("Pause gelöscht", "Pause nicht gefunden");
                 }
                 Command::Exit => {
                     println!("{}", success_text("> Programm beendet"));

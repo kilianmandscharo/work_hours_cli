@@ -1,38 +1,77 @@
 pub enum Command {
-    StartBlock,
-    StartBlockHomeoffice,
-    EndBlock,
-    StartPause,
-    EndPause,
-    Current,
-    All,
+    BlockStart(bool),
+    BlockEnd,
+    BlockDelete(i32),
+    BlockCurrent,
+    BlockAll,
+    PauseStart,
+    PauseEnd,
+    PauseDelete(i32),
     Exit,
-    Delete(i32),
     Unknown,
 }
 
 pub fn parse_command(command: &str) -> Command {
-    match command {
-        "start block" => Command::StartBlock,
-        "start block homeoffice" => Command::StartBlockHomeoffice,
-        "end block" => Command::EndBlock,
-        "start pause" => Command::StartPause,
-        "end pause" => Command::EndPause,
-        "current" => Command::Current,
-        "all" => Command::All,
+    let split: Vec<&str> = command.split(" ").collect();
+    match split[0] {
+        "block" => parse_block_command(&split),
+        "pause" => parse_pause_command(&split),
         "exit" => Command::Exit,
-        _ => {
-            let elements: Vec<&str> = command.split(" ").collect();
-            match elements[0] {
-                "delete" => {
-                    let id = elements[1].trim().parse::<i32>();
-                    match id {
-                        Ok(id) => Command::Delete(id),
-                        Err(_) => Command::Unknown,
-                    }
-                }
-                _ => Command::Unknown,
+        _ => Command::Unknown,
+    }
+}
+
+fn parse_block_command(split: &Vec<&str>) -> Command {
+    let len = split.len();
+
+    if len == 1 {
+        return Command::Unknown;
+    }
+
+    match split[1] {
+        "start" => {
+            if len < 3 {
+                return Command::BlockStart(false);
+            }
+            let homeoffice = split[2].trim().parse::<bool>();
+            match homeoffice {
+                Ok(homeoffice) => Command::BlockStart(homeoffice),
+                Err(_) => Command::BlockStart(false),
             }
         }
+        "end" => Command::BlockEnd,
+        "delete" => {
+            if len < 3 {
+                return Command::Unknown;
+            }
+            let id = split[2].trim().parse::<i32>();
+            match id {
+                Ok(id) => Command::BlockDelete(id),
+                Err(_) => Command::Unknown,
+            }
+        }
+        "current" => Command::BlockCurrent,
+        "all" => Command::BlockAll,
+        _ => Command::Unknown,
+    }
+}
+
+fn parse_pause_command(split: &Vec<&str>) -> Command {
+    let len = split.len();
+
+    match split[1] {
+        "start" => Command::PauseStart,
+        "end" => Command::PauseEnd,
+        "delete" => {
+            if len < 3 {
+                return Command::Unknown;
+            }
+            let id = split[2].trim().parse::<i32>();
+            match id {
+                Ok(id) => Command::PauseDelete(id),
+                Err(_) => Command::Unknown,
+            }
+        }
+        _ => Command::Unknown,
     }
 }

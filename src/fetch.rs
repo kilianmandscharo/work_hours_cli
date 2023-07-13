@@ -46,20 +46,9 @@ impl ActionHandler {
         ActionHandler {}
     }
 
-    pub fn start_block(&self, token: &Token) -> ActionHandlerResponse<()> {
+    pub fn start_block(&self, token: &Token, homeoffice: bool) -> ActionHandlerResponse<()> {
         let client = Client::new();
-        let url = format!("{SERVER_URL}/block_start?homeoffice=false");
-        let res = client
-            .post(url)
-            .header("Authorization", format!("Bearer {}", token.token_string()))
-            .send()?;
-
-        Ok(((), res.status()))
-    }
-
-    pub fn start_block_homeoffice(&self, token: &Token) -> ActionHandlerResponse<()> {
-        let client = Client::new();
-        let url = format!("{SERVER_URL}/block_start?homeoffice=true");
+        let url = format!("{SERVER_URL}/block_start?homeoffice={homeoffice}");
         let res = client
             .post(url)
             .header("Authorization", format!("Bearer {}", token.token_string()))
@@ -134,6 +123,17 @@ impl ActionHandler {
     pub fn delete_block(&self, id: i32, token: &Token) -> ActionHandlerResponse<()> {
         let client = Client::new();
         let url = format!("{SERVER_URL}/block/{id}");
+        let res = client
+            .delete(url)
+            .header("Authorization", format!("Bearer {}", token.token_string()))
+            .send()?;
+
+        Ok(((), res.status()))
+    }
+
+    pub fn delete_pause(&self, id: i32, token: &Token) -> ActionHandlerResponse<()> {
+        let client = Client::new();
+        let url = format!("{SERVER_URL}/pause/{id}");
         let res = client
             .delete(url)
             .header("Authorization", format!("Bearer {}", token.token_string()))
