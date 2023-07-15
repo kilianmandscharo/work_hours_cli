@@ -12,7 +12,7 @@ mod time;
 
 fn main() {
     let mut authorizer = auth::Authorizer::new();
-    let action_handler = fetch::ActionHandler::new();
+    let mut action_handler = fetch::ActionHandler::new();
 
     loop {
         if authorizer.login_necessary() {
@@ -71,10 +71,35 @@ fn main() {
                         .delete_block(id, token)
                         .handle_response("Block gelöscht", "Block nicht gefunden");
                 }
+                Command::BlockUpdateStart((id, start)) => {
+                    action_handler
+                        .update_block_start(id, &start, token)
+                        .handle_response("Block angepasst", "Fehler beim Anpassen");
+                }
+                Command::BlockUpdateEnd((id, end)) => {
+                    action_handler
+                        .update_block_end(id, &end, token)
+                        .handle_response("Block angepasst", "Fehler beim Anpassen");
+                }
+                Command::BlockUpdateHomeoffice((id, homeoffice)) => {
+                    action_handler
+                        .update_block_homeoffice(id, homeoffice, token)
+                        .handle_response("Block angepasst", "Fehler beim Anpassen");
+                }
                 Command::PauseDelete(id) => {
                     action_handler
                         .delete_pause(id, token)
                         .handle_response("Pause gelöscht", "Pause nicht gefunden");
+                }
+                Command::PauseUpdateStart((id, start)) => {
+                    action_handler
+                        .update_pause_start(id, &start, token)
+                        .handle_response("Pause angepasst", "Fehler beim Anpassen");
+                }
+                Command::PauseUpdateEnd((id, end)) => {
+                    action_handler
+                        .update_pause_end(id, &end, token)
+                        .handle_response("Pause angepasst", "Fehler beim Anpassen");
                 }
                 Command::Exit => {
                     println!("{}", success_text("> Programm beendet"));

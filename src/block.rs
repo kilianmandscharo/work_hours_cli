@@ -4,7 +4,7 @@ use crate::time::Duration;
 
 #[derive(Deserialize, Debug)]
 pub struct Block {
-    id: i32,
+    pub id: i32,
     start: String,
     end: String,
     pauses: Option<Vec<Pause>>,

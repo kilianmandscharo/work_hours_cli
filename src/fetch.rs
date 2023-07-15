@@ -5,8 +5,24 @@ use crate::{
     prompt::{error_text, success_text},
 };
 use reqwest::{blocking::Client, StatusCode};
+use serde::Serialize;
 
 const SERVER_URL: &str = "http://localhost:8080";
+
+#[derive(Serialize)]
+struct BodyStart<'a> {
+    start: &'a str,
+}
+
+#[derive(Serialize)]
+struct BodyEnd<'a> {
+    end: &'a str,
+}
+
+#[derive(Serialize)]
+struct BodyHomeoffice {
+    homeoffice: bool,
+}
 
 type ActionHandlerResponse<T> = Result<(T, StatusCode), FetchError>;
 
@@ -39,16 +55,29 @@ impl<T> ResponseHandler<T> for ActionHandlerResponse<T> {
     }
 }
 
-pub struct ActionHandler {}
+pub struct ActionHandler {
+    blocks: Option<Vec<Block>>,
+    current_block: Option<Block>,
+}
 
 impl ActionHandler {
     pub fn new() -> ActionHandler {
-        ActionHandler {}
+        ActionHandler {
+            blocks: None,
+            current_block: None,
+        }
     }
 
-    pub fn start_block(&self, token: &Token, homeoffice: bool) -> ActionHandlerResponse<()> {
+    fn clear_cache(&mut self) {
+        self.blocks = None;
+        self.current_block = None;
+    }
+
+    fn toggle_current_item(&mut self, route: &str, token: &Token) -> ActionHandlerResponse<()> {
+        self.clear_cache();
+
         let client = Client::new();
-        let url = format!("{SERVER_URL}/block_start?homeoffice={homeoffice}");
+        let url = format!("{SERVER_URL}/{route}");
         let res = client
             .post(url)
             .header("Authorization", format!("Bearer {}", token.token_string()))
@@ -57,37 +86,23 @@ impl ActionHandler {
         Ok(((), res.status()))
     }
 
-    pub fn start_pause(&self, token: &Token) -> ActionHandlerResponse<()> {
-        let client = Client::new();
-        let url = format!("{SERVER_URL}/pause_start");
-        let res = client
-            .post(url)
-            .header("Authorization", format!("Bearer {}", token.token_string()))
-            .send()?;
-
-        Ok(((), res.status()))
+    pub fn start_block(&mut self, token: &Token, homeoffice: bool) -> ActionHandlerResponse<()> {
+        self.toggle_current_item(
+            &format!("current_block_start?homeoffice={homeoffice}"),
+            token,
+        )
     }
 
-    pub fn end_block(&self, token: &Token) -> ActionHandlerResponse<()> {
-        let client = Client::new();
-        let url = format!("{SERVER_URL}/block_end");
-        let res = client
-            .post(url)
-            .header("Authorization", format!("Bearer {}", token.token_string()))
-            .send()?;
-
-        Ok(((), res.status()))
+    pub fn end_block(&mut self, token: &Token) -> ActionHandlerResponse<()> {
+        self.toggle_current_item("current_block_end", token)
     }
 
-    pub fn end_pause(&self, token: &Token) -> ActionHandlerResponse<()> {
-        let client = Client::new();
-        let url = format!("{SERVER_URL}/pause_end");
-        let res = client
-            .post(url)
-            .header("Authorization", format!("Bearer {}", token.token_string()))
-            .send()?;
+    pub fn start_pause(&mut self, token: &Token) -> ActionHandlerResponse<()> {
+        self.toggle_current_item("current_pause_start", token)
+    }
 
-        Ok(((), res.status()))
+    pub fn end_pause(&mut self, token: &Token) -> ActionHandlerResponse<()> {
+        self.toggle_current_item("current_pause_end", token)
     }
 
     pub fn get_current_block(&self, token: &Token) -> ActionHandlerResponse<Block> {
@@ -120,9 +135,11 @@ impl ActionHandler {
         Ok((blocks, status))
     }
 
-    pub fn delete_block(&self, id: i32, token: &Token) -> ActionHandlerResponse<()> {
+    fn delete_item(&mut self, route: &str, id: i32, token: &Token) -> ActionHandlerResponse<()> {
+        self.clear_cache();
+
         let client = Client::new();
-        let url = format!("{SERVER_URL}/block/{id}");
+        let url = format!("{SERVER_URL}/{route}/{id}");
         let res = client
             .delete(url)
             .header("Authorization", format!("Bearer {}", token.token_string()))
@@ -131,14 +148,96 @@ impl ActionHandler {
         Ok(((), res.status()))
     }
 
-    pub fn delete_pause(&self, id: i32, token: &Token) -> ActionHandlerResponse<()> {
+    pub fn delete_block(&mut self, id: i32, token: &Token) -> ActionHandlerResponse<()> {
+        self.delete_item("block", id, token)
+    }
+
+    pub fn delete_pause(&mut self, id: i32, token: &Token) -> ActionHandlerResponse<()> {
+        self.delete_item("pause", id, token)
+    }
+
+    // fn get_block_by_id(&self, id: i32, token: &Token) -> ActionHandlerResponse<Block> {
+    //     let client = Client::new();
+    //     let url = format!("{SERVER_URL}/block/{id}");
+    //     let res = client
+    //         .get(url)
+    //         .header("Authorization", format!("Bearer {}", token.token_string()))
+    //         .send()?;
+    //
+    //     let status = res.status();
+    //     let text = res.text()?;
+    //     let block: Block = serde_json::from_str(&text)?;
+    //
+    //     Ok((block, status))
+    // }
+
+    fn update_item<T>(
+        &mut self,
+        route: &str,
+        id: i32,
+        body: T,
+        token: &Token,
+    ) -> ActionHandlerResponse<()>
+    where
+        T: Serialize,
+    {
+        self.clear_cache();
+
+        let body = serde_json::to_string(&body)?;
+
         let client = Client::new();
-        let url = format!("{SERVER_URL}/pause/{id}");
+        let url = format!("{SERVER_URL}/{route}/{id}");
         let res = client
-            .delete(url)
+            .put(url)
+            .body(body)
             .header("Authorization", format!("Bearer {}", token.token_string()))
             .send()?;
 
         Ok(((), res.status()))
+    }
+
+    pub fn update_block_start(
+        &mut self,
+        id: i32,
+        start: &str,
+        token: &Token,
+    ) -> ActionHandlerResponse<()> {
+        self.update_item("block_start", id, BodyStart { start }, token)
+    }
+
+    pub fn update_block_end(
+        &mut self,
+        id: i32,
+        end: &str,
+        token: &Token,
+    ) -> ActionHandlerResponse<()> {
+        self.update_item("block_end", id, BodyEnd { end }, token)
+    }
+
+    pub fn update_block_homeoffice(
+        &mut self,
+        id: i32,
+        homeoffice: bool,
+        token: &Token,
+    ) -> ActionHandlerResponse<()> {
+        self.update_item("block_homeoffice", id, BodyHomeoffice { homeoffice }, token)
+    }
+
+    pub fn update_pause_start(
+        &mut self,
+        id: i32,
+        start: &str,
+        token: &Token,
+    ) -> ActionHandlerResponse<()> {
+        self.update_item("pause_start", id, BodyStart { start }, token)
+    }
+
+    pub fn update_pause_end(
+        &mut self,
+        id: i32,
+        end: &str,
+        token: &Token,
+    ) -> ActionHandlerResponse<()> {
+        self.update_item("pause_end", id, BodyEnd { end }, token)
     }
 }
