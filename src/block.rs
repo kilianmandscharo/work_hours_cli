@@ -2,7 +2,7 @@ use serde::Deserialize;
 
 use crate::time::Duration;
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Block {
     pub id: i32,
     start: String,
@@ -44,7 +44,7 @@ impl Block {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Pause {
     id: i32,
     start: String,

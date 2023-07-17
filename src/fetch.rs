@@ -105,7 +105,11 @@ impl ActionHandler {
         self.toggle_current_item("current_pause_end", token)
     }
 
-    pub fn get_current_block(&self, token: &Token) -> ActionHandlerResponse<Block> {
+    pub fn get_current_block(&mut self, token: &Token) -> ActionHandlerResponse<Block> {
+        if let Some(ref block) = self.current_block {
+            return Ok((block.clone(), StatusCode::OK));
+        }
+
         let client = Client::new();
         let url = format!("{SERVER_URL}/block_current");
         let res = client
@@ -117,10 +121,16 @@ impl ActionHandler {
         let text = res.text()?;
         let block: Block = serde_json::from_str(&text)?;
 
+        self.current_block = Some(block.clone());
+
         Ok((block, status))
     }
 
-    pub fn get_all_blocks(&self, token: &Token) -> ActionHandlerResponse<Vec<Block>> {
+    pub fn get_all_blocks(&mut self, token: &Token) -> ActionHandlerResponse<Vec<Block>> {
+        if let Some(ref blocks) = self.blocks {
+            return Ok((blocks.clone(), StatusCode::OK));
+        }
+
         let client = Client::new();
         let url = format!("{SERVER_URL}/block");
         let res = client
@@ -131,6 +141,8 @@ impl ActionHandler {
         let status = res.status();
         let text = res.text()?;
         let blocks: Vec<Block> = serde_json::from_str(&text)?;
+
+        self.blocks = Some(blocks.clone());
 
         Ok((blocks, status))
     }
