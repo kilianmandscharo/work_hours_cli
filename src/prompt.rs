@@ -34,3 +34,7 @@ pub fn error_text(s: &str) -> ColoredString {
 pub fn success_text(s: &str) -> ColoredString {
     ColoredString::from(s).green()
 }
+
+pub fn highlight_text(s: &str) -> ColoredString {
+    ColoredString::from(s).blue()
+}

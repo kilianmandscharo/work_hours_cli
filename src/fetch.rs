@@ -168,21 +168,6 @@ impl ActionHandler {
         self.delete_item("pause", id, token)
     }
 
-    // fn get_block_by_id(&self, id: i32, token: &Token) -> ActionHandlerResponse<Block> {
-    //     let client = Client::new();
-    //     let url = format!("{SERVER_URL}/block/{id}");
-    //     let res = client
-    //         .get(url)
-    //         .header("Authorization", format!("Bearer {}", token.token_string()))
-    //         .send()?;
-    //
-    //     let status = res.status();
-    //     let text = res.text()?;
-    //     let block: Block = serde_json::from_str(&text)?;
-    //
-    //     Ok((block, status))
-    // }
-
     fn update_item<T>(
         &mut self,
         route: &str,

@@ -1,3 +1,4 @@
+use block::visualize_blocks;
 use fetch::ResponseHandler;
 use parse::{parse_command, Command};
 use prompt::{error_text, prompt_command, prompt_login, success_text};
@@ -61,9 +62,7 @@ fn main() {
                         .handle_response("> Alle Blöcke", "> Keine Blöcke");
 
                     if let Some(blocks) = blocks {
-                        for block in blocks {
-                            block.display();
-                        }
+                        visualize_blocks(blocks);
                     }
                 }
                 Command::BlockDelete(id) => {
