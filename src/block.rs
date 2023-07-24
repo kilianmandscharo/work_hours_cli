@@ -1,5 +1,4 @@
-use chrono::DateTime;
-use chrono::Datelike;
+use chrono::{DateTime, FixedOffset};
 use colored::Colorize;
 use serde::Deserialize;
 
@@ -75,7 +74,10 @@ pub fn visualize_blocks(blocks: Vec<Block>) {
     let min_start = DateTime::parse_from_rfc3339(&min_start_block.start).unwrap();
     let max_end = DateTime::parse_from_rfc3339(&max_end_block.end).unwrap();
 
-    let total_minutes = max_end.signed_duration_since(min_start).num_minutes();
+    let total_minutes = max_end
+        .time()
+        .signed_duration_since(min_start.time())
+        .num_minutes();
     let (w, _) = term_size::dimensions().unwrap();
     let minutes_per_space = (total_minutes as f64 / w as f64).ceil() as i64;
 
@@ -84,27 +86,82 @@ pub fn visualize_blocks(blocks: Vec<Block>) {
         let end = DateTime::parse_from_rfc3339(&block.end).unwrap();
         let duration = end.signed_duration_since(start);
 
-        let minutes_to_min_start = start.signed_duration_since(min_start).num_minutes();
+        let minutes_to_min_start = start
+            .time()
+            .signed_duration_since(min_start.time())
+            .num_minutes();
 
         let space_to_start = minutes_to_min_start / minutes_per_space;
         let space_from_start_to_end = duration.num_minutes() / minutes_per_space - 9;
 
         let block_title = format!("{} - {}", block.id, start.format("%d.%m.%Y"));
 
-        println!(
-            "{}{}{}",
-            empty_space(space_to_start),
-            block_title.on_green().black(),
-            empty_space(space_from_start_to_end + 16 - block_title.len() as i64).on_green(),
-        );
+        match block.pauses {
+            Some(pauses) => {
+                let mut points: Vec<DateTime<FixedOffset>> = Vec::new();
 
-        println!(
-            "{}{}{}{}",
-            empty_space(space_to_start),
-            start.format("%H:%M:%S"),
-            empty_space(space_from_start_to_end),
-            end.format("%H:%M:%S")
-        );
+                points.push(start);
+
+                for pause in pauses {
+                    points.push(DateTime::parse_from_rfc3339(&pause.start).unwrap());
+                    points.push(DateTime::parse_from_rfc3339(&pause.end).unwrap());
+                }
+
+                points.push(end);
+
+                for i in 1..points.len() {
+                    let spaces = points[i].signed_duration_since(points[i - 1]).num_minutes()
+                        / minutes_per_space;
+
+                    let duration_minutes = duration.num_minutes() / minutes_per_space;
+                    let percentage_of_whole: f64 = spaces as f64 / duration_minutes as f64;
+
+                    let extra_spaces = (percentage_of_whole * 8 as f64).floor() as i64;
+
+                    if i == 1 {
+                        print!(
+                            "{}{}{}",
+                            empty_space(space_to_start),
+                            block_title.on_green().black(),
+                            empty_space(spaces + extra_spaces - block_title.len() as i64)
+                                .on_green(),
+                        );
+                    } else {
+                        if i % 2 == 0 {
+                            print!("{}", empty_space(spaces + extra_spaces).on_blue());
+                        } else {
+                            print!("{}", empty_space(spaces + extra_spaces).on_green());
+                        }
+                    }
+                }
+
+                println!();
+
+                println!(
+                    "{}{}{}{}",
+                    empty_space(space_to_start),
+                    start.format("%H:%M:%S"),
+                    empty_space(space_from_start_to_end),
+                    end.format("%H:%M:%S")
+                );
+            }
+            None => {
+                println!(
+                    "{}{}{}",
+                    empty_space(space_to_start),
+                    block_title.on_green().black(),
+                    empty_space(space_from_start_to_end + 16 - block_title.len() as i64).on_green(),
+                );
+
+                println!(
+                    "{}{}{}{}",
+                    empty_space(space_to_start),
+                    start.format("%H:%M:%S"),
+                    empty_space(space_from_start_to_end),
+                    end.format("%H:%M:%S")
+                );
+            }
+        }
 
         println!();
     }
